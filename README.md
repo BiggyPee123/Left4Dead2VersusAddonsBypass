@@ -1,3 +1,7 @@
+
+# **THIS WILL TAKE A MINUTE TO LOAD ON STARTUP, IT WILL SAY NOT RESPONDING BUT IT IS WORKING. **
+
+
 Credits go to West as he mostly made it - https://www.youtube.com/@Zhytec
 
 It bypasses the installed Addons that you have installed on your Device from the Workshop
