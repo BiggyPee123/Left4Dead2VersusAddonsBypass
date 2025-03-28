@@ -51,7 +51,9 @@ def check_directory():
         process_workshop_files()
         locate_button.pack_forget()
     else:
-        status_label.config(text="Left 4 Dead 2 directory not Found", fg="red")
+        messagebox.showwarning("Directory Not Found", 
+                            "Left 4 Dead 2 directory not found at default location.\n"
+                            "Please click 'Find Directory' to locate it manually.")
         locate_button.pack(fill=tk.X, pady=2)
 
 def locate_directory():
@@ -66,12 +68,19 @@ def locate_directory():
             process_workshop_files()
             locate_button.pack_forget()
         else:
-            status_label.config(text="The selected directory does not contain the required folders.", fg="red")
+            messagebox.showwarning("Invalid Directory", 
+                                 "The selected directory does not contain the required folders.\n"
+                                 "Please select the main Left 4 Dead 2 folder containing the 'left4dead2' subfolder.")
 
 def process_workshop_files(search_term=None):
     for widget in inner_frame.winfo_children():
         widget.destroy()
-    image_files = [f for f in os.listdir(workshop_path) if f.endswith(".jpg")]
+    try:
+        image_files = [f for f in os.listdir(workshop_path) if f.endswith(".jpg")]
+    except FileNotFoundError:
+        messagebox.showwarning("Workshop Not Found", "Workshop directory not found. Please locate your Left 4 Dead 2 directory.")
+        return
+
     existing_mods = check_gameinfo_for_mods()
     addons_with_mods = []
     addons_without_mods = []
@@ -115,7 +124,7 @@ def check_gameinfo_for_mods():
                 file.writelines(unique_lines)
             existing_mods = seen_ids
         except Exception as e:
-            print(f"Error reading gameinfo.txt: {e}")
+            messagebox.showerror("Error", f"Failed to read gameinfo.txt: {e}")
     return existing_mods
 
 def display_image_and_id(file_id, image_file, is_checked):
@@ -165,7 +174,6 @@ def toggle_selection(file_id, var):
 def apply_bypass():
     existing_mods = check_gameinfo_for_mods()
     if not selected_ids:
-        # If no addons are selected, remove all bypasses
         for file_id in existing_mods:
             gameinfo_path = os.path.join(left4dead2_sub_path, "gameinfo.txt")
             try:
@@ -175,19 +183,20 @@ def apply_bypass():
                 with open(gameinfo_path, "w") as file:
                     file.writelines(lines)
             except Exception as e:
-                print(f"Error removing mods_{file_id} from gameinfo.txt: {e}")
+                messagebox.showerror("Error", f"Failed to modify gameinfo.txt: {e}")
+                return
             mods_folder = os.path.join(left4dead2_root_path, f"mods_{file_id}")
             if os.path.exists(mods_folder):
                 try:
                     shutil.rmtree(mods_folder)
                 except Exception as e:
-                    print(f"Error removing folder mods_{file_id}: {e}")
+                    messagebox.showerror("Error", f"Failed to remove mods folder: {e}")
+                    return
         messagebox.showinfo("Success", "All bypasses removed successfully!")
-        selected_ids.clear()  # Clear the selected_ids list
+        selected_ids.clear()
         process_workshop_files()
         return
 
-    # Remove unselected addons from the bypass
     for file_id in existing_mods:
         if file_id not in selected_ids:
             gameinfo_path = os.path.join(left4dead2_sub_path, "gameinfo.txt")
@@ -198,21 +207,22 @@ def apply_bypass():
                 with open(gameinfo_path, "w") as file:
                     file.writelines(lines)
             except Exception as e:
-                print(f"Error removing mods_{file_id} from gameinfo.txt: {e}")
+                messagebox.showerror("Error", f"Failed to modify gameinfo.txt: {e}")
+                return
             mods_folder = os.path.join(left4dead2_root_path, f"mods_{file_id}")
             if os.path.exists(mods_folder):
                 try:
                     shutil.rmtree(mods_folder)
                 except Exception as e:
-                    print(f"Error removing folder mods_{file_id}: {e}")
+                    messagebox.showerror("Error", f"Failed to remove mods folder: {e}")
+                    return
 
-    # Add selected addons to the bypass
     for file_id in selected_ids:
         if file_id in existing_mods:
             continue
         vpk_file = os.path.join(workshop_path, f"{file_id}.vpk")
         if not os.path.exists(vpk_file):
-            messagebox.showerror("File Not Found", f"File {file_id}.vpk not found!")
+            messagebox.showwarning("File Not Found", f"File {file_id}.vpk not found!")
             continue
         mods_folder = os.path.join(left4dead2_root_path, f"mods_{file_id}")
         os.makedirs(mods_folder, exist_ok=True)
@@ -236,7 +246,12 @@ def apply_bypass():
 def move_selected_to_top():
     for widget in inner_frame.winfo_children():
         widget.destroy()
-    image_files = [f for f in os.listdir(workshop_path) if f.endswith(".jpg")]
+    try:
+        image_files = [f for f in os.listdir(workshop_path) if f.endswith(".jpg")]
+    except FileNotFoundError:
+        messagebox.showwarning("Workshop Not Found", "Workshop directory not found. Please locate your Left 4 Dead 2 directory.")
+        return
+
     existing_mods = check_gameinfo_for_mods()
     selected_addons = []
     unselected_addons = []
@@ -268,7 +283,7 @@ root = tk.Tk()
 try:
     root.iconbitmap(os.path.join(script_dir, 'Versus.ico'))
 except tk.TclError:
-    print("Icon file not found. Skipping icon setting.")
+    pass
 
 try:
     myappid = 'BiggyPee123.West.Version1.1'
@@ -306,40 +321,35 @@ def create_rounded_button(parent, text, command, font_size=9):
 def open_west_link(event):
     webbrowser.open("https://www.youtube.com/@Zhytec")
 
-credit_label = tk.Label(root, text="made by West using DeepSeek ai (click to view youtube channel)", font=("Arial", 10), fg="white", bg="#181818", cursor="hand2")
-credit_label.pack(side=tk.TOP, pady=(5, 0))
-credit_label.bind("<Button-1>", open_west_link)
-
-def on_enter_west(event):
-    credit_label.config(font=("Arial", 10, "underline"))
-
-def on_leave_west(event):
-    credit_label.config(font=("Arial", 10))
-
-credit_label.bind("<Enter>", on_enter_west)
-credit_label.bind("<Leave>", on_leave_west)
-
 def open_biggypee_link(event):
     webbrowser.open("https://www.youtube.com/@BGP475/videos")
 
-repackaged_label = tk.Label(root, text="robbed by BiggyPee123 (click to view youtube channel)", font=("Arial", 10), fg="red", bg="#181818", cursor="hand2")
+# Create credit labels with hover effects
+credit_label = tk.Label(root, text="Made by West/ZX using the DeepSeek AI", 
+                       font=("Arial", 10), fg="white", bg="#181818", cursor="hand2")
+credit_label.pack(side=tk.TOP, pady=(5, 0))
+credit_label.bind("<Button-1>", open_west_link)
+
+repackaged_label = tk.Label(root, text="Published by BiggyPee123 to the Github", 
+                           font=("Arial", 10), fg="red", bg="#181818", cursor="hand2")
 repackaged_label.pack(side=tk.TOP, pady=(0, 10))
 repackaged_label.bind("<Button-1>", open_biggypee_link)
 
-def on_enter_biggypee(event):
-    repackaged_label.config(font=("Arial", 10, "underline"))
+# Hover effects for credit labels
+def on_enter_credit(e):
+    e.widget.config(font=("Arial", 10, "underline"))
 
-def on_leave_biggypee(event):
-    repackaged_label.config(font=("Arial", 10))
+def on_leave_credit(e):
+    e.widget.config(font=("Arial", 10))
 
-repackaged_label.bind("<Enter>", on_enter_biggypee)
-repackaged_label.bind("<Leave>", on_leave_biggypee)
+credit_label.bind("<Enter>", on_enter_credit)
+credit_label.bind("<Leave>", on_leave_credit)
+
+repackaged_label.bind("<Enter>", on_enter_credit)
+repackaged_label.bind("<Leave>", on_leave_credit)
 
 label = tk.Label(root, text="Versus Addon Bypasser", font=("Arial", 14), bg="#181818", fg="white")
 label.pack(pady=10)
-
-status_label = tk.Label(root, text="", font=("Arial", 12), bg="#181818", fg="white")
-status_label.pack(pady=5)
 
 search_frame = tk.Frame(root, bg="#181818")
 search_frame.pack(fill=tk.X, padx=10, pady=5)
@@ -351,23 +361,6 @@ search_button = create_rounded_button(search_frame, "Search", search_addons)
 search_button.pack(side=tk.LEFT)
 
 search_entry.bind("<Return>", search_addons)
-
-def focus_search_bar(event):
-    search_entry.focus_set()
-
-search_entry.bind("<FocusIn>", lambda e: search_entry.configure(bg="#303030"))
-search_entry.bind("<FocusOut>", lambda e: search_entry.configure(bg="#242424"))
-
-def on_search_entry_click(event):
-    search_entry.focus_set()
-
-search_entry.bind("<Button-1>", on_search_entry_click)
-
-def on_root_click(event):
-    if not search_entry.winfo_containing(event.x_root, event.y_root):
-        root.focus_set()
-
-root.bind("<Button-1>", on_root_click)
 
 canvas = tk.Canvas(root, bg="#181818", bd=0, highlightthickness=0)
 canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -384,13 +377,6 @@ canvas.config(yscrollcommand=scrollbar.set)
 inner_frame = tk.Frame(canvas, bg="#181818", bd=0)
 canvas.create_window((0, 0), window=inner_frame, anchor="nw")
 
-def on_canvas_configure(event):
-    canvas.configure(scrollregion=canvas.bbox("all"))
-
-canvas.bind("<Configure>", on_canvas_configure)
-
-canvas.bind_all("<MouseWheel>", on_mouse_wheel)
-
 bottom_bar = tk.Frame(root, bg="#181818")
 bottom_bar.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
 
@@ -401,6 +387,9 @@ move_to_top_button = create_rounded_button(bottom_bar, "Move to Top", move_selec
 locate_button.pack(fill=tk.X, pady=2)
 apply_button.pack(fill=tk.X, pady=2)
 move_to_top_button.pack(fill=tk.X, pady=2)
+
+canvas.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+canvas.bind_all("<MouseWheel>", on_mouse_wheel)
 
 check_directory()
 
